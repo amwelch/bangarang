@@ -99,6 +99,6 @@ func loadEscalation(fileName string) (*alarm.Escalation, error) {
 	}
 	e.Policy.Compile()
 
-	err = e.LoadAlarms()
+	err = e.Policy.LoadAlarms()
 	return e, err
 }

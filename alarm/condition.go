@@ -4,6 +4,8 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
+	"errors"
+	"fmt"
 
 	"github.com/eliothedeman/bangarang/event"
 	"github.com/eliothedeman/smoothie"
@@ -21,8 +23,18 @@ type Condition struct {
 	Exactly      *float64                 `json:"exactly"`
 	StdDev       *StdDev                  `json:"std_dev"`
 	Occurences   int                      `json:"occurences"`
+  EscalationPolicy string               `json:"escalation"`
+	Alarms       []Alarm                  `-`
 	tracker      map[string]*EventTracker `-`
 	trackerMutex sync.RWMutex
+}
+
+func (c *Condition) LoadAlarms() error {
+	c.Alarms = GetCollection(c.EscalationPolicy)
+	if c.Alarms == nil {
+		return errors.New(fmt.Sprintf("escalation policy %s not found", c.EscalationPolicy))
+	}
+	return nil
 }
 
 type StdDev struct {

@@ -160,7 +160,7 @@ func (p *Pipeline) Process(e *event.Event) int {
 		if esc.Match(e) {
 			esc.StatusOf(e)
 			if e.StatusChanged() {
-				for _, a := range esc.Alarms {
+				for _, a := range esc.Policy.GetAlarms(e) {
 					err := a.Send(e)
 					if err != nil {
 						log.Println(err)
@@ -168,7 +168,7 @@ func (p *Pipeline) Process(e *event.Event) int {
 				}
 
 				if e.Status != event.OK {
-					p.index.PutIncident(p.NewIncident(esc.EscalationPolicy, e))
+					p.index.PutIncident(p.NewIncident(esc.Policy.GetEscalationPolicy(e), e))
 				} else {
 					p.index.DeleteIncidentByEvent(e)
 				}

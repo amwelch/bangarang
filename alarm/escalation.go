@@ -1,8 +1,6 @@
 package alarm
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"reflect"
 	"regexp"
@@ -17,16 +15,6 @@ func init() {
 
 type Escalation struct {
 	Policy           Policy  `json:"policy"`
-	EscalationPolicy string  `json:"escalation"`
-	Alarms           []Alarm `-`
-}
-
-func (e *Escalation) LoadAlarms() error {
-	e.Alarms = GetCollection(e.EscalationPolicy)
-	if e.Alarms == nil {
-		return errors.New(fmt.Sprintf("escalation policy %s not found", e.EscalationPolicy))
-	}
-	return nil
 }
 
 func (e *Escalation) Match(ev *event.Event) bool {
@@ -44,6 +32,18 @@ type Policy struct {
 	Warn        *Condition        `json:"warn"`
 	r_match     map[string]*regexp.Regexp
 	r_not_match map[string]*regexp.Regexp
+}
+
+func (p *Policy) LoadAlarms() error {
+	err := p.Crit.LoadAlarms()
+	if err != nil{
+		return err
+	}
+	err = p.Warn.LoadAlarms()
+	if err != nil{
+		return err
+	}
+	return nil
 }
 
 // compile the regex patterns for this policy
@@ -93,6 +93,37 @@ func (p *Policy) StatusOf(e *event.Event) int {
 	e.Status = event.OK
 	return event.OK
 }
+
+func (p *Policy) GetEscalationPolicy(e *event.Event) string {
+	if e.Status == event.CRITICAL {
+		if p.Crit != nil {
+			return p.Crit.EscalationPolicy
+		} else {
+			return ""
+		}
+	} else if e.Status == event.WARNING {
+		if p.Warn != nil {
+			return p.Warn.EscalationPolicy
+		} else {
+			return ""
+		}
+	}
+	return ""
+}
+
+func (p *Policy) GetAlarms(e *event.Event) []Alarm {
+	if e.Status == event.CRITICAL {
+		if p.Crit != nil {
+			return p.Crit.Alarms
+		}
+	} else if e.Status == event.WARNING {
+		if p.Warn != nil {
+			return p.Warn.Alarms
+		}
+	}
+	return []Alarm{}
+}
+
 
 func (p *Policy) CheckNotMatch(e *event.Event) bool {
 	v := reflect.ValueOf(e).Elem()
